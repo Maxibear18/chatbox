@@ -1,6 +1,11 @@
 import { Session } from './types'
 
 export const sessions: Session[] = [
+	{
+		"id": "0a1b2c3d-4e5f-6789-abcd-ef0123456789",
+		"name": "My First Chat",
+		"messages": []
+	},
     {
         "id": "1bc7094f-1248-4b51-8ac8-180a5a1470aa",
         "name": "Random Talk",
