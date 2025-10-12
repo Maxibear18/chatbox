@@ -39,7 +39,19 @@ const md = new MarkdownIt({
         } else {
             content = md.utils.escapeHtml(str)
         }
-        return `<pre class="hljs" style="max-width: 50vw; overflow: auto"><code>${content}</code></pre>`;
+        const escapedStr = md.utils.escapeHtml(str);
+        return `
+            <div class="code-block-container">
+                <button class="copy-button" data-code="${escapedStr}" title="Copy code">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="m5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <span class="copy-text">Copy</span>
+                </button>
+                <pre class="hljs" style="max-width: 50vw; overflow: auto"><code>${content}</code></pre>
+            </div>
+        `;
     }
 });
 md.use(mdKatex, { blockClass: 'katexmath-block rounded-md p-[10px]', errorColor: ' #cc0000' })
@@ -83,6 +95,47 @@ function _Block(props: Props) {
     if (props.showTokenCount) {
         tips.push(`token estimate: ${wordCount.estimateTokens(msg.content)}`)
     }
+
+    // Handle copy button clicks for code blocks
+    useEffect(() => {
+        const handleCopyClick = async (event: Event) => {
+            const target = event.target as HTMLElement;
+            if (target.closest('.copy-button')) {
+                const button = target.closest('.copy-button') as HTMLButtonElement;
+                const codeToCopy = button.getAttribute('data-code');
+                
+                if (codeToCopy) {
+                    try {
+                        await navigator.clipboard.writeText(codeToCopy);
+                        
+                        // Show feedback
+                        const copyText = button.querySelector('.copy-text') as HTMLElement;
+                        const originalText = copyText.textContent;
+                        copyText.textContent = 'Copied!';
+                        button.classList.add('copied');
+                        
+                        // Reset after 2 seconds
+                        setTimeout(() => {
+                            copyText.textContent = originalText;
+                            button.classList.remove('copied');
+                        }, 2000);
+                    } catch (err) {
+                        console.error('Failed to copy code:', err);
+                    }
+                }
+            }
+        };
+
+        // Add event listener to the message container
+        const messageElement = document.getElementById(msg.id);
+        if (messageElement) {
+            messageElement.addEventListener('click', handleCopyClick);
+            
+            return () => {
+                messageElement.removeEventListener('click', handleCopyClick);
+            };
+        }
+    }, [msg.id]);
     return (
         <ListItem
             id={props.id}
