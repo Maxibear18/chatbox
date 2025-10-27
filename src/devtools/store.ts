@@ -151,6 +151,15 @@ export default function useStore() {
     const createEmptyChatSession = () => {
         createChatSession(createSession())
     }
+    const reorderChatSession = (sourceIndex: number, targetIndex: number) => {
+        if (sourceIndex === targetIndex) {
+            return
+        }
+        const sessions = [...chatSessions]
+        const [moved] = sessions.splice(sourceIndex, 1)
+        sessions.splice(targetIndex, 0, moved)
+        setSessions(sessions)
+    }
 
     const setMessages = (session: Session, messages: Message[]) => {
         updateChatSession({
@@ -180,6 +189,7 @@ export default function useStore() {
         updateChatSession,
         deleteChatSession,
         createEmptyChatSession,
+        reorderChatSession,
 
         currentSession,
         switchCurrentSession,

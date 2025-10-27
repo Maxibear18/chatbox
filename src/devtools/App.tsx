@@ -90,6 +90,62 @@ function Main() {
 
     const [sessionClean, setSessionClean] = React.useState<Session | null>(null);
 
+    // Drag and drop state
+    const [draggedSessionIndex, setDraggedSessionIndex] = React.useState<number | null>(null);
+    const [activeDropZoneIndex, setActiveDropZoneIndex] = React.useState<number | null>(null);
+
+    // Drag handlers
+    const handleDragStart = (index: number) => {
+        setDraggedSessionIndex(index)
+    }
+
+    const handleDragEnd = () => {
+        setDraggedSessionIndex(null)
+        setActiveDropZoneIndex(null)
+    }
+
+    const handleDragOver = (sessionIndex: number, clientY: number) => {
+        if (draggedSessionIndex === null) return
+
+        const element = document.getElementById(`session-${sessionIndex}`)
+        if (!element) return
+
+        const rect = element.getBoundingClientRect()
+        const midPoint = rect.top + rect.height / 2
+
+        // Determine which drop zone should be active
+        if (clientY < midPoint) {
+            setActiveDropZoneIndex(sessionIndex)
+        } else {
+            setActiveDropZoneIndex(sessionIndex + 1)
+        }
+    }
+
+    const handleDrop = (targetSessionIndex: number) => {
+        if (draggedSessionIndex === null || draggedSessionIndex === targetSessionIndex) {
+            handleDragEnd()
+            return
+        }
+
+        // Determine the target drop zone based on activeDropZoneIndex
+        let targetIndex = targetSessionIndex
+        if (activeDropZoneIndex === targetSessionIndex) {
+            // Dropping above the session
+            targetIndex = targetSessionIndex
+        } else if (activeDropZoneIndex === targetSessionIndex + 1) {
+            // Dropping below the session
+            targetIndex = targetSessionIndex + 1
+        }
+
+        // Adjust targetIndex if dragging from below
+        if (draggedSessionIndex < targetIndex) {
+            targetIndex = targetIndex - 1
+        }
+
+        store.reorderChatSession(draggedSessionIndex, targetIndex)
+        handleDragEnd()
+    }
+
     const generateName = async (session: Session) => {
         client.replay(
             store.settings.openaiKey,
@@ -192,22 +248,54 @@ function Main() {
                                 </ListSubheader>
                             }
                         >
+                            {/* Drop zone before first session */}
+                            <Box
+                                className="session-drop-zone"
+                                sx={{
+                                    height: draggedSessionIndex !== null ? '4px' : 0,
+                                    transition: 'height 0.2s ease',
+                                    backgroundColor: activeDropZoneIndex === 0 ? 'primary.main' : 'transparent',
+                                    marginX: '8px',
+                                    borderRadius: '2px',
+                                    pointerEvents: 'none',
+                                }}
+                            />
                             {
                                 store.chatSessions.map((session, ix) => (
-                                    <SessionItem selected={store.currentSession.id === session.id}
-                                        session={session}
-                                        switchMe={() => {
-                                            store.switchCurrentSession(session)
-                                            document.getElementById('message-input')?.focus() // better way?
-                                        }}
-                                        deleteMe={() => store.deleteChatSession(session)}
-                                        copyMe={() => {
-                                            const newSession = createSession(session.name + ' Copyed')
-                                            newSession.messages = session.messages
-                                            store.createChatSession(newSession, ix)
-                                        }}
-                                        editMe={() => setConfigureChatConfig(session)}
-                                    />
+                                    <React.Fragment key={session.id}>
+                                        <SessionItem selected={store.currentSession.id === session.id}
+                                            session={session}
+                                            index={ix}
+                                            draggedSessionIndex={draggedSessionIndex}
+                                            switchMe={() => {
+                                                store.switchCurrentSession(session)
+                                                document.getElementById('message-input')?.focus() // better way?
+                                            }}
+                                            deleteMe={() => store.deleteChatSession(session)}
+                                            copyMe={() => {
+                                                const newSession = createSession(session.name + ' Copyed')
+                                                newSession.messages = session.messages
+                                                store.createChatSession(newSession, ix)
+                                            }}
+                                            editMe={() => setConfigureChatConfig(session)}
+                                            onDragStart={handleDragStart}
+                                            onDragEnd={handleDragEnd}
+                                            onDragOver={handleDragOver}
+                                            onDrop={handleDrop}
+                                        />
+                                        {/* Drop zone after each session */}
+                                        <Box
+                                            className="session-drop-zone"
+                                            sx={{
+                                                height: draggedSessionIndex !== null ? '4px' : 0,
+                                                transition: 'height 0.2s ease',
+                                                backgroundColor: activeDropZoneIndex === ix + 1 ? 'primary.main' : 'transparent',
+                                                marginX: '8px',
+                                                borderRadius: '2px',
+                                                pointerEvents: 'none',
+                                            }}
+                                        />
+                                    </React.Fragment>
                                 ))
                             }
                         </MenuList>
