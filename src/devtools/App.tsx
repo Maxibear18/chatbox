@@ -94,6 +94,58 @@ function Main() {
     const [draggedSessionIndex, setDraggedSessionIndex] = React.useState<number | null>(null);
     const [activeDropZoneIndex, setActiveDropZoneIndex] = React.useState<number | null>(null);
 
+    // Drag handlers
+    const handleDragStart = (index: number) => {
+        setDraggedSessionIndex(index)
+    }
+
+    const handleDragEnd = () => {
+        setDraggedSessionIndex(null)
+        setActiveDropZoneIndex(null)
+    }
+
+    const handleDragOver = (sessionIndex: number, clientY: number) => {
+        if (draggedSessionIndex === null) return
+
+        const element = document.getElementById(`session-${sessionIndex}`)
+        if (!element) return
+
+        const rect = element.getBoundingClientRect()
+        const midPoint = rect.top + rect.height / 2
+
+        // Determine which drop zone should be active
+        if (clientY < midPoint) {
+            setActiveDropZoneIndex(sessionIndex)
+        } else {
+            setActiveDropZoneIndex(sessionIndex + 1)
+        }
+    }
+
+    const handleDrop = (targetSessionIndex: number) => {
+        if (draggedSessionIndex === null || draggedSessionIndex === targetSessionIndex) {
+            handleDragEnd()
+            return
+        }
+
+        // Determine the target drop zone based on activeDropZoneIndex
+        let targetIndex = targetSessionIndex
+        if (activeDropZoneIndex === targetSessionIndex) {
+            // Dropping above the session
+            targetIndex = targetSessionIndex
+        } else if (activeDropZoneIndex === targetSessionIndex + 1) {
+            // Dropping below the session
+            targetIndex = targetSessionIndex + 1
+        }
+
+        // Adjust targetIndex if dragging from below
+        if (draggedSessionIndex < targetIndex) {
+            targetIndex = targetIndex - 1
+        }
+
+        store.reorderChatSession(draggedSessionIndex, targetIndex)
+        handleDragEnd()
+    }
+
     const generateName = async (session: Session) => {
         client.replay(
             store.settings.openaiKey,
@@ -213,6 +265,8 @@ function Main() {
                                     <React.Fragment key={session.id}>
                                         <SessionItem selected={store.currentSession.id === session.id}
                                             session={session}
+                                            index={ix}
+                                            draggedSessionIndex={draggedSessionIndex}
                                             switchMe={() => {
                                                 store.switchCurrentSession(session)
                                                 document.getElementById('message-input')?.focus() // better way?
@@ -224,6 +278,10 @@ function Main() {
                                                 store.createChatSession(newSession, ix)
                                             }}
                                             editMe={() => setConfigureChatConfig(session)}
+                                            onDragStart={handleDragStart}
+                                            onDragEnd={handleDragEnd}
+                                            onDragOver={handleDragOver}
+                                            onDrop={handleDrop}
                                         />
                                         {/* Drop zone after each session */}
                                         <Box

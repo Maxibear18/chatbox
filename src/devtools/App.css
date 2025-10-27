@@ -1,3 +1,17 @@
 .App {
   text-align: center;
 }
+
+/* Drag and drop styles */
+.draggable-session-item {
+  cursor: grab !important;
+  user-select: none;
+}
+
+.draggable-session-item:active {
+  cursor: grabbing !important;
+}
+
+.draggable-session-item.dragging {
+  opacity: 0.5;
+}
