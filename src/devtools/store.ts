@@ -126,9 +126,23 @@ export default function useStore() {
         if (sessions.length === 0) {
             sessions.push(createSession())
         }
+        
+        // Only switch if we're deleting the currently active session
         if (target.id === currentSession.id) {
-            switchCurrentSession(sessions[0])
+            // Find the index of the deleted session in the original list
+            const deletedIndex = chatSessions.findIndex((s) => s.id === target.id)
+            
+            // Try to select the previous session, or fall back to the first one
+            if (deletedIndex > 0 && deletedIndex <= sessions.length) {
+                // Select the session that was at the previous index
+                switchCurrentSession(sessions[deletedIndex - 1])
+            } else {
+                // Deleted was first or last, select first remaining
+                switchCurrentSession(sessions[0])
+            }
         }
+        // If deleting a non-active session, don't switch at all
+        
         setSessions(sessions)
     }
     const updateChatSession = (session: Session) => {
