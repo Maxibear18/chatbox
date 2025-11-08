@@ -22,6 +22,7 @@ import * as prompts from './prompts'
 import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
 import CleanWidnow from './CleanWindow';
 import { ThemeSwitcherProvider } from './theme/ThemeSwitcher';
+import { isEnterWithoutModifiers } from './utils/keyboard';
 
 const { useEffect, useState } = React
 
@@ -443,7 +444,7 @@ function MessageInput(props: {
                         autoFocus
                         id='message-input'
                         onKeyDown={(event) => {
-                            if (event.keyCode === 13 && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
+                            if (isEnterWithoutModifiers(event)) {
                                 event.preventDefault()
                                 submit()
                                 return
