@@ -158,6 +158,12 @@ function Main() {
         })
     }
 
+    // Helper function to format keyboard shortcut hints based on platform
+    const formatKeyboardShortcut = (key: string): string => {
+        const isMac = navigator.platform.toUpperCase().includes('MAC')
+        return isMac ? `⌘${key}` : `Ctrl+${key}`
+    }
+
     // Global keyboard shortcuts handler
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -295,7 +301,7 @@ function Main() {
                                 New Chat
                             </ListItemText>
                             <Typography variant="body2" color="text.secondary">
-                                {/* ⌘N */}
+                                {formatKeyboardShortcut('N')}
                             </Typography>
                         </MenuItem>
                         <MenuItem onClick={() => {
