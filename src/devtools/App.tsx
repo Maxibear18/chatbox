@@ -145,6 +145,19 @@ function Main() {
         document.getElementById('message-input')?.focus() // better way?
     }, [messageInput])
 
+    // Helper function to reliably focus the message input after DOM updates
+    const focusMessageInput = () => {
+        // Use requestAnimationFrame to ensure DOM has been updated
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const inputElement = document.getElementById('message-input')
+                if (inputElement) {
+                    inputElement.focus()
+                }
+            })
+        })
+    }
+
     // Global keyboard shortcuts handler
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -186,10 +199,7 @@ function Main() {
             // Handle Ctrl/Cmd+N: New chat (only when not typing in an input)
             if (matchesCtrlOrCmdShortcut(event, 'n') && !isInputFocused) {
                 store.createEmptyChatSession()
-                // Focus message input after a brief delay to ensure DOM is updated
-                setTimeout(() => {
-                    document.getElementById('message-input')?.focus()
-                }, 100)
+                focusMessageInput()
                 event.preventDefault()
                 return
             }
@@ -274,7 +284,10 @@ function Main() {
 
                         <Divider />
 
-                        <MenuItem onClick={() => store.createEmptyChatSession()} >
+                        <MenuItem onClick={() => {
+                            store.createEmptyChatSession()
+                            focusMessageInput()
+                        }} >
                             <ListItemIcon>
                                 <IconButton><AddIcon fontSize="small" /></IconButton>
                             </ListItemIcon>
