@@ -22,6 +22,7 @@ import * as prompts from './prompts'
 import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
 import CleanWidnow from './CleanWindow';
 import { ThemeSwitcherProvider } from './theme/ThemeSwitcher';
+import { isEnterWithoutModifiers, matchesCtrlOrCmdShortcut, isEscapeKey } from './utils/keyboard';
 
 const { useEffect, useState } = React
 
@@ -144,6 +145,81 @@ function Main() {
         document.getElementById('message-input')?.focus() // better way?
     }, [messageInput])
 
+    // Helper function to reliably focus the message input after DOM updates
+    const focusMessageInput = () => {
+        // Use requestAnimationFrame to ensure DOM has been updated
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const inputElement = document.getElementById('message-input')
+                if (inputElement) {
+                    inputElement.focus()
+                }
+            })
+        })
+    }
+
+    // Helper function to format keyboard shortcut hints based on platform
+    const formatKeyboardShortcut = (key: string): string => {
+        const isMac = navigator.platform.toUpperCase().includes('MAC')
+        return isMac ? `⌘${key}` : `Ctrl+${key}`
+    }
+
+    // Global keyboard shortcuts handler
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            // Check if any modal/dialog is open
+            const isModalOpen = openSettingWindow || configureChatConfig !== null || sessionClean !== null
+            
+            // Don't trigger shortcuts when user is typing in input fields, textareas, or contenteditable elements
+            const target = event.target as HTMLElement
+            const isInputFocused = 
+                target.tagName === 'INPUT' ||
+                target.tagName === 'TEXTAREA' ||
+                target.isContentEditable ||
+                target.closest('[contenteditable="true"]') !== null
+
+            // Handle Escape key: Close open modals/dialogs (only when not typing in an input)
+            if (isEscapeKey(event) && !isInputFocused) {
+                if (openSettingWindow) {
+                    setOpenSettingWindow(false)
+                    event.preventDefault()
+                    return
+                }
+                if (configureChatConfig !== null) {
+                    setConfigureChatConfig(null)
+                    event.preventDefault()
+                    return
+                }
+                if (sessionClean !== null) {
+                    setSessionClean(null)
+                    event.preventDefault()
+                    return
+                }
+            }
+
+            // Don't trigger other shortcuts when a modal is open (except Escape handled above)
+            if (isModalOpen) {
+                return
+            }
+
+            // Handle Ctrl/Cmd+N: New chat (only when not typing in an input)
+            if (matchesCtrlOrCmdShortcut(event, 'n') && !isInputFocused) {
+                store.createEmptyChatSession()
+                focusMessageInput()
+                event.preventDefault()
+                return
+            }
+        }
+
+        // Add event listener to window for global shortcuts
+        window.addEventListener('keydown', handleKeyDown)
+
+        // Cleanup: Remove event listener on unmount
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown)
+        }
+    }, [store, openSettingWindow, configureChatConfig, sessionClean])
+
     return (
         <Box sx={{
             height: '100%',
@@ -214,7 +290,10 @@ function Main() {
 
                         <Divider />
 
-                        <MenuItem onClick={() => store.createEmptyChatSession()} >
+                        <MenuItem onClick={() => {
+                            store.createEmptyChatSession()
+                            focusMessageInput()
+                        }} >
                             <ListItemIcon>
                                 <IconButton><AddIcon fontSize="small" /></IconButton>
                             </ListItemIcon>
@@ -222,7 +301,7 @@ function Main() {
                                 New Chat
                             </ListItemText>
                             <Typography variant="body2" color="text.secondary">
-                                {/* ⌘N */}
+                                {formatKeyboardShortcut('N')}
                             </Typography>
                         </MenuItem>
                         <MenuItem onClick={() => {
