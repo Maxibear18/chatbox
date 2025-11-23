@@ -21,6 +21,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import * as prompts from './prompts'
 import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
 import CleanWidnow from './CleanWindow';
+import DeleteSessionDialog from './DeleteSessionDialog';
 import { ThemeSwitcherProvider } from './theme/ThemeSwitcher';
 
 const { useEffect, useState } = React
@@ -89,6 +90,8 @@ function Main() {
     const [configureChatConfig, setConfigureChatConfig] = React.useState<Session | null>(null);
 
     const [sessionClean, setSessionClean] = React.useState<Session | null>(null);
+
+    const [sessionToDelete, setSessionToDelete] = React.useState<Session | null>(null);
 
     const generateName = async (session: Session) => {
         client.replay(
@@ -200,7 +203,7 @@ function Main() {
                                             store.switchCurrentSession(session)
                                             document.getElementById('message-input')?.focus() // better way?
                                         }}
-                                        deleteMe={() => store.deleteChatSession(session)}
+                                        deleteMe={() => setSessionToDelete(session)}
                                         copyMe={() => {
                                             const newSession = createSession(session.name + ' Copyed')
                                             newSession.messages = session.messages
@@ -386,6 +389,19 @@ function Main() {
                                 setSessionClean(null)
                             }}
                             close={() => setSessionClean(null)}
+                        />
+                    )
+                }
+                {
+                    sessionToDelete !== null && (
+                        <DeleteSessionDialog
+                            open={sessionToDelete !== null}
+                            session={sessionToDelete}
+                            onConfirm={() => {
+                                store.deleteChatSession(sessionToDelete)
+                                setSessionToDelete(null)
+                            }}
+                            onCancel={() => setSessionToDelete(null)}
                         />
                     )
                 }
