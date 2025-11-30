@@ -371,6 +371,9 @@ function Main() {
                                     const newAssistantMsg = createMessage('assistant', '....')
                                     store.currentSession.messages = [...store.currentSession.messages, newUserMsg, newAssistantMsg]
                                     store.updateChatSession(store.currentSession)
+                                    // Clear draft after message is submitted
+                                    store.clearDraft(store.currentSession.id)
+                                    setMessageInput('')
                                     generate(store.currentSession, promptsMsgs, newAssistantMsg)
                                     setScrollToMsg({ msgId: newAssistantMsg.id, smooth: true })
                                 }}
@@ -404,7 +407,13 @@ function Main() {
                         <CleanWidnow open={sessionClean !== null}
                             session={sessionClean}
                             save={(session) => {
+                                // Clear draft when session is cleaned
+                                store.clearDraft(session.id)
                                 store.updateChatSession(session)
+                                // Clear input if cleaning current session
+                                if (session.id === store.currentSession.id) {
+                                    setMessageInput('')
+                                }
                                 setSessionClean(null)
                             }}
                             close={() => setSessionClean(null)}
