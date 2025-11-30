@@ -139,10 +139,26 @@ function Main() {
         )
     }
 
+    // Message input state - synced with current session's draft
     const [ messageInput, setMessageInput ] = useState('')
+    
+    // Restore draft when switching sessions
     useEffect(() => {
-        document.getElementById('message-input')?.focus() // better way?
-    }, [messageInput])
+        const draft = store.currentSession.draft ?? ''
+        setMessageInput(draft)
+        document.getElementById('message-input')?.focus()
+    }, [store.currentSession.id])
+
+    // Save draft to session when input changes (debounced)
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            if (store.currentSession) {
+                store.setDraft(store.currentSession.id, messageInput)
+            }
+        }, 500) // 500ms debounce
+
+        return () => clearTimeout(timeoutId)
+    }, [messageInput, store.currentSession.id])
 
     return (
         <Box sx={{
@@ -197,6 +213,10 @@ function Main() {
                                     <SessionItem selected={store.currentSession.id === session.id}
                                         session={session}
                                         switchMe={() => {
+                                            // Save current draft immediately before switching
+                                            if (store.currentSession) {
+                                                store.setDraft(store.currentSession.id, messageInput)
+                                            }
                                             store.switchCurrentSession(session)
                                             document.getElementById('message-input')?.focus() // better way?
                                         }}
@@ -335,6 +355,8 @@ function Main() {
                                             let input = msg.content.split('\n').map(line => `> ${line}`).join('\n')
                                             input += '\n\n-------------------\n\n'
                                             setMessageInput(input)
+                                            // Save draft immediately when quoting
+                                            store.setDraft(store.currentSession.id, input)
                                         }}
                                     />
                                 ))
