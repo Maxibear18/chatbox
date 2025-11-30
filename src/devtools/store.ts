@@ -76,7 +76,11 @@ export async function readSessions(): Promise<Session[]> {
     if (sessions.length === 0) {
         return [createSession()]
     }
-    return sessions
+    // Ensure backward compatibility: add draft field to sessions that don't have it
+    return sessions.map((session: Session) => ({
+        ...session,
+        draft: session.draft ?? ''
+    }))
 }
 
 export async function writeSessions(sessions: Session[]) {
