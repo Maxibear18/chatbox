@@ -173,7 +173,9 @@ export default function useStore() {
             sessions.push(createSession())
         }
         if (target.id === currentSession.id) {
-            switchCurrentSession(sessions[0])
+            // When deleting current session, switch to new session without saving draft
+            // (since the session is being deleted, we don't need to preserve its draft)
+            _switchCurrentSession(sessions[0])
         }
         setSessions(sessions)
     }
