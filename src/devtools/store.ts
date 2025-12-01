@@ -76,7 +76,11 @@ export async function readSessions(): Promise<Session[]> {
     if (sessions.length === 0) {
         return [createSession()]
     }
-    return sessions
+    // Ensure backward compatibility: add draft field to sessions that don't have it
+    return sessions.map((session: Session) => ({
+        ...session,
+        draft: session.draft ?? ''
+    }))
 }
 
 export async function writeSessions(sessions: Session[]) {
@@ -109,16 +113,58 @@ export default function useStore() {
     }
 
     const [chatSessions, _setChatSessions] = useState<Session[]>([createSession()])
-    const [currentSession, switchCurrentSession] = useState<Session>(chatSessions[0])
+    const [currentSession, _switchCurrentSession] = useState<Session>(chatSessions[0])
     useEffect(() => {
         readSessions().then((sessions: Session[]) => {
             _setChatSessions(sessions)
-            switchCurrentSession(sessions[0])
+            _switchCurrentSession(sessions[0])
         })
     }, [])
     const setSessions = (sessions: Session[]) => {
         _setChatSessions(sessions)
         writeSessions(sessions)
+    }
+
+    // Draft management functions
+    const setDraft = (sessionId: string, draft: string) => {
+        const sessions = chatSessions.map((s) => {
+            if (s.id === sessionId) {
+                return { ...s, draft: draft ?? '' }
+            }
+            return s
+        })
+        setSessions(sessions)
+        // Update current session if it's the one being modified
+        if (sessionId === currentSession.id) {
+            _switchCurrentSession({ ...currentSession, draft: draft ?? '' })
+        }
+    }
+
+    const getDraft = (sessionId: string): string => {
+        const session = chatSessions.find((s) => s.id === sessionId)
+        return session?.draft ?? ''
+    }
+
+    const clearDraft = (sessionId: string) => {
+        setDraft(sessionId, '')
+    }
+
+    // Enhanced switchCurrentSession that saves current draft before switching
+    const switchCurrentSession = (session: Session) => {
+        // Save current session's draft before switching
+        if (currentSession) {
+            const currentDraft = currentSession.draft ?? ''
+            const sessions = chatSessions.map((s) => {
+                if (s.id === currentSession.id) {
+                    return { ...s, draft: currentDraft }
+                }
+                return s
+            })
+            _setChatSessions(sessions)
+            writeSessions(sessions)
+        }
+        // Switch to new session
+        _switchCurrentSession(session)
     }
 
     const deleteChatSession = (target: Session) => {
@@ -127,7 +173,9 @@ export default function useStore() {
             sessions.push(createSession())
         }
         if (target.id === currentSession.id) {
-            switchCurrentSession(sessions[0])
+            // When deleting current session, switch to new session without saving draft
+            // (since the session is being deleted, we don't need to preserve its draft)
+            _switchCurrentSession(sessions[0])
         }
         setSessions(sessions)
     }
@@ -183,6 +231,11 @@ export default function useStore() {
 
         currentSession,
         switchCurrentSession,
+
+        // Draft management
+        setDraft,
+        getDraft,
+        clearDraft,
 
         toasts,
         addToast,
